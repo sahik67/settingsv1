@@ -2,31 +2,34 @@
 
 A complete device monitoring solution with Android app, Supabase backend, and HTML dashboard. Packed with all Hoverwatch-style features!
 
-## ✨ Features
+## ✅ Current App Features (Actually Implemented)
 
-| Feature | Status |
-|---------|--------|
-| 📍 Real-time Location Tracking | ✅ |
-| 📞 Call Log Monitoring | ✅ |
-| 💬 SMS Monitoring | ✅ |
-| 📱 Messenger Monitoring (WhatsApp, Telegram, Instagram, Facebook, TikTok, Snapchat, Google Chat, VSCO, & more!) | ✅ |
-| 🌐 Web History Tracking | ✅ |
-| 📱 App Usage Tracking | ✅ |
-| 📸 Photo Monitoring | ✅ |
-| 🖼️ Screenshot Capture | ✅ |
-| ⌨️ Keystroke Logging | ✅ |
-| 📶 SIM Card Change Detection | ✅ |
-| 🔋 Battery Status | ✅ |
-| 🚫 Hide App Icon | ✅ |
-| 🔄 Auto-start on Boot | ✅ |
-| 🔒 Foreground Service (Anti-kill) | ✅ |
-| 🎤 Ambient Recording | ✅ |
-| 📽️ Screen Recording (Infrastructure Ready) | ✅ |
-| 📞 Call Recording (Infrastructure Ready) | ✅ |
-| 📧 Email Monitoring (Infrastructure Ready) | ✅ |
-| 🔊 Ring Device Remote Command | ✅ |
-| 📷 Take Photo Remote Command (Infrastructure Ready) | ✅ |
-| 🔔 Real-time Notifications | ✅ |
+| Feature | Status | Details |
+|---------|--------|---------|
+| 📍 Location Tracking | ✅ | GPS/Network location, battery level, charging status |
+| 📞 Call Log Monitoring | ✅ | Incoming/Outgoing/Missed calls, duration, contact name |
+| 💬 SMS Monitoring | ✅ | Sent/Received SMS, contact name, content |
+| 📱 Messenger Monitoring | ✅ | 40+ messenger apps (WhatsApp, Telegram, Instagram, Facebook, TikTok, Snapchat, Google Chat, VSCO, Signal, WeChat, Line, Viber, Discord, Slack, Microsoft Teams, etc.) via notifications |
+| 🌐 Web History Tracking | ✅ | Chrome, Firefox, Opera, Samsung Browser, Edge, Brave, Vivaldi, DuckDuckGo, UC Browser, Puffin - URL, title, duration, browsing mode |
+| 📱 App Usage Tracking | ✅ | Top apps used in last 24 hours |
+| � Contacts Sync | ✅ | All contacts with phone numbers & emails |
+| 📋 Clipboard Monitoring | ✅ | Tracks copied text |
+| � Device Info | ✅ | Model, Android version, RAM, storage |
+| 📶 Network Info | ✅ | Wi-Fi SSID, network type (5G/4G/3G/2G), signal strength |
+| 🚫 Hide App Icon | ✅ | App not visible in launcher |
+| 🔄 Auto-start on Boot | ✅ | App restarts automatically after reboot |
+| 🔒 Foreground Service (Anti-kill) | ✅ | Persistent notification as "System Services" |
+| 🔔 Risk Alerts | ✅ | Detects sensitive words (password, credit card, secret, danger, etc.) |
+| 🔊 Ring Device Remote Command | ✅ | Vibrate device from dashboard |
+| 🎤 Ambient Recording Remote Command | ✅ | Record 30 seconds of ambient audio |
+| 📷 Take Photo Remote Command | ⏳ | Infrastructure ready, implementation pending |
+| 📽️ Screen Recording Remote Command | ⏳ | Infrastructure ready, implementation pending |
+| 📞 Call Recording | ⏳ | Infrastructure ready, implementation pending |
+| 📧 Email Monitoring | ⏳ | Infrastructure ready, implementation pending |
+| � Photo Monitoring | ⏳ | Infrastructure ready, implementation pending |
+| �️ Screenshot Capture | ⏳ | Infrastructure ready, implementation pending |
+| ⌨️ Keystroke Logging | ⏳ | Infrastructure ready, implementation pending |
+| � SIM Card Change Detection | ⏳ | Infrastructure ready, implementation pending |
 
 ## 📦 Project Structure
 
