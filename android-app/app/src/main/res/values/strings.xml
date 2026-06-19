@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">System Services</string>
+    <string name="accessibility_service_description">Accessibility service required for device monitoring</string>
+    <string name="notification_title">System Service</string>
+    <string name="notification_text">Running system optimization</string>
+</resources>
